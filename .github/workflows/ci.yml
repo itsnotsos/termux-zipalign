@@ -1,0 +1,43 @@
+name: Build Zipalign Binaries
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build Zipalign
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        arch:
+          - arm64-v8a
+          - armeabi-v7a
+          - i686
+          - x86_64
+
+    steps:
+      - name: Install Dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y build-essential cmake git
+
+      - name: Clone Zipalign Source
+        run: |
+          git clone https://android.googlesource.com/platform/build.git
+          cd build/tools/zipalign
+
+      - name: Set Up Cross-Compilation for ${{ matrix.arch }}
+        run: |
+          cd build/tools/zipalign
+          mkdir build && cd build
+          cmake .. -DCMAKE_BUILD_TYPE=Release -DANDROID_ABI=${{ matrix.arch }}
+          make -j$(nproc)
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: zipalign-${{ matrix.arch }}
+          path: build/tools/zipalign/build/zipalign
